@@ -1,0 +1,366 @@
+
+R version 4.5.2 (2025-10-31) -- "[Not] Part in a Rumble"
+Copyright (C) 2025 The R Foundation for Statistical Computing
+Platform: aarch64-apple-darwin20
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> # concentration.R
+> # How concentrated are singles and multis, say in 2019?
+> # Tom Davidoff
+> # 04/24/26
+> 
+> library(data.table)
+> library(ggplot2)
+> YEAR <- 2018 # ends 2019, effectively starts 2014
+> 
+> fileDetached <- "~/DropboxExternal/Roomvu_Sauder\ projects/MLS\ BC\ data/detached.csv"
+> fileAttached <- "~/DropboxExternal/Roomvu_Sauder\ projects/MLS\ BC\ data/attached.csv"
+> 
+> 
+> 
+> for (ff in c(fileDetached,fileAttached)) {
++ 	segment <- ifelse(grepl("detached",ff),"Detached","Attached")
++ 	for (aa in c("North Vancouver","West Vancouver","Vancouver West")) {
++ 		print(paste("NOW FOR THIS SEGMENT AND AREA:",segment,aa))
++ 		dD <- fread(ff,select=c("List.Sales.Rep.1...CREA.ID","List.Price","List.Date","Region","Area"))
++ 		dD <- dD[Region=="Greater Vancouver" & Area==aa]
++ 		dD[,price:=as.numeric(gsub("[^0-9.]","",List.Price))/1000000]
++ 		dD[,date:=as.Date(List.Date,format="%m/%d/%Y")]
++ 		dD[,year:=year(date)]
++ 		dD <- dD[year==YEAR]
++ 		setnames(dD,"List.Sales.Rep.1...CREA.ID","id")
++ 		dD <- dD[!is.na(id) & id!=""]
++ 		# calculate herf
++ 		dDR <- dD[,.(count=.N,sumPrice=sum(price)),by="id"]
++ 		dDR[,share:=count/sum(count)]
++ 		dDR[,shareP:=sumPrice/sum(sumPrice)]
++ 		print(summary(dDR))
++ 		herfN <- sum((dDR$share)^2)
++ 		herfP <- sum((dDR$shareP)^2)
++ 		print(c("HERF FOR THIS SEGMENT/AREA:",herfN,herfP))
++ 		print(c("TOTAL TRANSACTIONS THIS SEGMENT/AREA:",sum(dDR$count)))
++ 		# plot a histogram of shares
++ 		ggplot(dDR,aes(x=shareP)) + geom_histogram() + ggtitle(paste("HERF for price shares in ",ff))
++ 		ggsave(paste("text/herfPriceShares_",segment,aa,".png",sep=""))
++ 		# print top 20 brokers by count
++ 		print("TOP 20 BROKERS BY COUNT")
++ 		print(dDR[order(-count)][1:20])
++ 		# plot share vs price share
++ 		ggplot(dDR,aes(x=share,y=shareP)) + geom_point() + ggtitle(paste("Share vs Price Share in ",ff))
++ 		ggsave(paste0("text/shareVsPriceShare_",segment,aa,".png",sep=""))
++ 		print("top 20% of brokers cumulative share")
++ 		dDR <- dDR[order(-share)]
++ 		print(sum(dDR[1:round(0.2*nrow(dDR)),share]))
++ 	}
++ }
+[1] "NOW FOR THIS SEGMENT AND AREA: Detached North Vancouver"
+       id              count           sumPrice          share          
+ Min.   :1018854   Min.   : 1.000   Min.   : 0.620   Min.   :0.0006826  
+ 1st Qu.:1026334   1st Qu.: 1.000   1st Qu.: 1.938   1st Qu.:0.0006826  
+ Median :1165232   Median : 2.000   Median : 3.448   Median :0.0013652  
+ Mean   :1153396   Mean   : 2.867   Mean   : 6.237   Mean   :0.0019569  
+ 3rd Qu.:1226909   3rd Qu.: 3.000   3rd Qu.: 6.606   3rd Qu.:0.0020478  
+ Max.   :1326154   Max.   :27.000   Max.   :80.821   Max.   :0.0184300  
+     shareP         
+ Min.   :0.0001945  
+ 1st Qu.:0.0006079  
+ Median :0.0010818  
+ Mean   :0.0019569  
+ 3rd Qu.:0.0020726  
+ Max.   :0.0253576  
+[1] "HERF FOR THIS SEGMENT/AREA:" "0.00474554159046703"        
+[3] "0.00557231624127134"        
+[1] "TOTAL TRANSACTIONS THIS SEGMENT/AREA:"
+[2] "1465"                                 
+Saving 7 x 7 in image
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+[1] "TOP 20 BROKERS BY COUNT"
+         id count sumPrice       share      shareP
+      <int> <int>    <num>       <num>       <num>
+ 1: 1020160    27 80.82100 0.018430034 0.025357560
+ 2: 1025407    26 53.73290 0.017747440 0.016858678
+ 3: 1119337    26 70.93000 0.017747440 0.022254262
+ 4: 1167947    23 54.10000 0.015699659 0.016973855
+ 5: 1019741    22 49.69130 0.015017065 0.015590628
+ 6: 1172107    17 33.99400 0.011604096 0.010665605
+ 7: 1205408    17 46.96780 0.011604096 0.014736130
+ 8: 1019770    16 41.93630 0.010921502 0.013157499
+ 9: 1021926    16 44.00980 0.010921502 0.013808059
+10: 1023646    15 29.71280 0.010238908 0.009322380
+11: 1220219    14 26.69400 0.009556314 0.008375233
+12: 1019757    12 30.05578 0.008191126 0.009429989
+13: 1024327    11 24.03480 0.007508532 0.007540910
+14: 1275246    11 30.15900 0.007508532 0.009462375
+15: 1135545    11 18.72140 0.007508532 0.005873833
+16: 1022344    11 24.22680 0.007508532 0.007601150
+17: 1022375    10 23.46180 0.006825939 0.007361131
+18: 1020600    10 14.83880 0.006825939 0.004655668
+19: 1140026    10 21.08400 0.006825939 0.006615097
+20: 1113845    10 21.15289 0.006825939 0.006636711
+         id count sumPrice       share      shareP
+      <int> <int>    <num>       <num>       <num>
+Saving 7 x 7 in image
+[1] "top 20% of brokers cumulative share"
+[1] 0.5488055
+[1] "NOW FOR THIS SEGMENT AND AREA: Detached West Vancouver"
+       id              count           sumPrice           share          
+ Min.   :1018797   Min.   : 1.000   Min.   :  0.209   Min.   :0.0008673  
+ 1st Qu.:1026310   1st Qu.: 1.000   1st Qu.:  3.288   1st Qu.:0.0008673  
+ Median :1178172   Median : 2.000   Median :  5.780   Median :0.0017346  
+ Mean   :1159211   Mean   : 3.505   Mean   : 14.896   Mean   :0.0030395  
+ 3rd Qu.:1232850   3rd Qu.: 3.000   3rd Qu.: 12.474   3rd Qu.:0.0026019  
+ Max.   :1325715   Max.   :44.000   Max.   :238.528   Max.   :0.0381613  
+     shareP         
+ Min.   :4.265e-05  
+ 1st Qu.:6.709e-04  
+ Median :1.179e-03  
+ Mean   :3.040e-03  
+ 3rd Qu.:2.545e-03  
+ Max.   :4.867e-02  
+[1] "HERF FOR THIS SEGMENT/AREA:" "0.0111485630080735"         
+[3] "0.0138802680462543"         
+[1] "TOTAL TRANSACTIONS THIS SEGMENT/AREA:"
+[2] "1153"                                 
+Saving 7 x 7 in image
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+[1] "TOP 20 BROKERS BY COUNT"
+         id count  sumPrice      share      shareP
+      <int> <int>     <num>      <num>       <num>
+ 1: 1229919    44 238.52800 0.03816132 0.048672032
+ 2: 1026011    38 173.23980 0.03295750 0.035349867
+ 3: 1025437    37 146.35880 0.03209020 0.029864755
+ 4: 1225798    37 161.23400 0.03209020 0.032900064
+ 5: 1021686    35 221.82000 0.03035559 0.045262737
+ 6: 1219742    34 128.08800 0.02948829 0.026136568
+ 7: 1115464    23  81.39560 0.01994796 0.016608906
+ 8: 1228189    21 121.95900 0.01821336 0.024885935
+ 9: 1025421    16  62.96300 0.01387684 0.012847704
+10: 1025441    14  45.47789 0.01214224 0.009279838
+11: 1020160    14  87.91300 0.01214224 0.017938793
+12: 1187178    14  66.75200 0.01214224 0.013620856
+13: 1208163    13  55.88900 0.01127493 0.011404243
+14: 1025393    13  45.51000 0.01127493 0.009286391
+15: 1275246    13  65.51480 0.01127493 0.013368403
+16: 1211347    13  26.34000 0.01127493 0.005374720
+17: 1023191    12  40.67800 0.01040763 0.008300413
+18: 1024050    12 107.89600 0.01040763 0.022016357
+19: 1154707    11  33.79800 0.00954033 0.006896538
+20: 1020136    11  67.25200 0.00954033 0.013722882
+         id count  sumPrice      share      shareP
+      <int> <int>     <num>      <num>       <num>
+Saving 7 x 7 in image
+[1] "top 20% of brokers cumulative share"
+[1] 0.6478751
+[1] "NOW FOR THIS SEGMENT AND AREA: Detached Vancouver West"
+       id              count           sumPrice           share          
+ Min.   :1018446   Min.   : 1.000   Min.   :  0.399   Min.   :0.0005672  
+ 1st Qu.:1024905   1st Qu.: 1.000   1st Qu.:  3.299   1st Qu.:0.0005672  
+ Median :1166274   Median : 1.000   Median :  5.380   Median :0.0005672  
+ Mean   :1151321   Mean   : 2.526   Mean   : 11.096   Mean   :0.0014327  
+ 3rd Qu.:1232358   3rd Qu.: 2.000   3rd Qu.:  9.876   3rd Qu.:0.0011344  
+ Max.   :1322724   Max.   :59.000   Max.   :296.355   Max.   :0.0334657  
+     shareP         
+ Min.   :5.152e-05  
+ 1st Qu.:4.259e-04  
+ Median :6.946e-04  
+ Mean   :1.433e-03  
+ 3rd Qu.:1.275e-03  
+ Max.   :3.826e-02  
+[1] "HERF FOR THIS SEGMENT/AREA:" "0.00645170838522604"        
+[3] "0.00788620950467278"        
+[1] "TOTAL TRANSACTIONS THIS SEGMENT/AREA:"
+[2] "1763"                                 
+Saving 7 x 7 in image
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+[1] "TOP 20 BROKERS BY COUNT"
+         id count  sumPrice       share      shareP
+      <int> <int>     <num>       <num>       <num>
+ 1: 1185469    59 296.35466 0.033465683 0.038263608
+ 2: 1025043    55 238.28400 0.031196824 0.030765858
+ 3: 1023611    36 132.42200 0.020419739 0.017097566
+ 4: 1024294    35 181.18360 0.019852524 0.023393383
+ 5: 1023251    34 160.05800 0.019285309 0.020665768
+ 6: 1025967    30 167.82500 0.017016449 0.021668598
+ 7: 1263095    28 119.17260 0.015882019 0.015386880
+ 8: 1023615    28 157.20000 0.015882019 0.020296759
+ 9: 1165152    27 195.08600 0.015314804 0.025188381
+10: 1020410    26 135.40900 0.014747589 0.017483231
+11: 1156605    18  83.02600 0.010209870 0.010719839
+12: 1025059    17  58.21290 0.009642655 0.007516115
+13: 1151529    16  98.99400 0.009075440 0.012781535
+14: 1092334    16  79.81060 0.009075440 0.010304685
+15: 1125166    14  56.65234 0.007941010 0.007314624
+16: 1019421    13  45.01100 0.007373795 0.005811561
+17: 1140281    13  40.60389 0.007373795 0.005242540
+18: 1024268    12 109.30400 0.006806580 0.014112703
+19: 1023600    12  31.76100 0.006806580 0.004100797
+20: 1212071    12  46.76200 0.006806580 0.006037640
+         id count  sumPrice       share      shareP
+      <int> <int>     <num>       <num>       <num>
+Saving 7 x 7 in image
+[1] "top 20% of brokers cumulative share"
+[1] 0.5882019
+[1] "NOW FOR THIS SEGMENT AND AREA: Attached North Vancouver"
+      id                count          sumPrice          share          
+ Length:731         Min.   : 1.00   Min.   : 0.350   Min.   :0.0005429  
+ Class :character   1st Qu.: 1.00   1st Qu.: 0.700   1st Qu.:0.0005429  
+ Mode  :character   Median : 1.00   Median : 1.175   Median :0.0005429  
+                    Mean   : 2.52   Mean   : 2.197   Mean   :0.0013680  
+                    3rd Qu.: 3.00   3rd Qu.: 2.378   3rd Qu.:0.0016287  
+                    Max.   :35.00   Max.   :29.627   Max.   :0.0190011  
+     shareP         
+ Min.   :0.0002179  
+ 1st Qu.:0.0004358  
+ Median :0.0007316  
+ Mean   :0.0013680  
+ 3rd Qu.:0.0014810  
+ Max.   :0.0184469  
+[1] "HERF FOR THIS SEGMENT/AREA:" "0.0035043106852887"         
+[3] "0.00401395813895017"        
+[1] "TOTAL TRANSACTIONS THIS SEGMENT/AREA:"
+[2] "1842"                                 
+Saving 7 x 7 in image
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+[1] "TOP 20 BROKERS BY COUNT"
+         id count sumPrice       share      shareP
+     <char> <int>    <num>       <num>       <num>
+ 1: 1022583    35 29.62650 0.019001086 0.018446892
+ 2: 1249399    28 25.12800 0.015200869 0.015645908
+ 3: 1119337    26 28.86498 0.014115092 0.017972733
+ 4: 1185022    19 22.53810 0.010314875 0.014033311
+ 5: 1214167    18 15.77530 0.009771987 0.009822465
+ 6: 1224678    16 12.78880 0.008686211 0.007962925
+ 7: 1234476    15 16.84290 0.008143322 0.010487204
+ 8: 1231149    14  9.93020 0.007600434 0.006183023
+ 9: 1120785    14 10.74290 0.007600434 0.006689049
+10: 1141790    14 11.40578 0.007600434 0.007101790
+11: 1099983    14 12.76860 0.007600434 0.007950348
+12: 1019750    13  6.24000 0.007057546 0.003885326
+13: 1187524    13 11.23400 0.007057546 0.006994832
+14: 1025407    13 15.01900 0.007057546 0.009351556
+15: 1136997    13  8.69370 0.007057546 0.005413118
+16: 1023646    13 12.10530 0.007057546 0.007537345
+17: 1208474    13 15.65390 0.007057546 0.009746875
+18: 1274452    12 11.13800 0.006514658 0.006935058
+19: 1022380    12 11.62280 0.006514658 0.007236917
+20: 1018997    12 15.77080 0.006514658 0.009819663
+         id count sumPrice       share      shareP
+     <char> <int>    <num>       <num>       <num>
+Saving 7 x 7 in image
+[1] "top 20% of brokers cumulative share"
+[1] 0.5537459
+[1] "NOW FOR THIS SEGMENT AND AREA: Attached West Vancouver"
+      id                count           sumPrice           share         
+ Length:186         Min.   : 1.000   Min.   : 0.3699   Min.   :0.002519  
+ Class :character   1st Qu.: 1.000   1st Qu.: 1.0705   1st Qu.:0.002519  
+ Mode  :character   Median : 1.000   Median : 1.7499   Median :0.002519  
+                    Mean   : 2.134   Mean   : 3.8855   Mean   :0.005376  
+                    3rd Qu.: 3.000   3rd Qu.: 4.5103   3rd Qu.:0.007557  
+                    Max.   :22.000   Max.   :55.1408   Max.   :0.055416  
+     shareP         
+ Min.   :0.0005118  
+ 1st Qu.:0.0014813  
+ Median :0.0024213  
+ Mean   :0.0053763  
+ 3rd Qu.:0.0062410  
+ Max.   :0.0762983  
+[1] "HERF FOR THIS SEGMENT/AREA:" "0.0114397020474719"         
+[3] "0.0177609385496453"         
+[1] "TOTAL TRANSACTIONS THIS SEGMENT/AREA:"
+[2] "397"                                  
+Saving 7 x 7 in image
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+[1] "TOP 20 BROKERS BY COUNT"
+         id count sumPrice      share      shareP
+     <char> <int>    <num>      <num>       <num>
+ 1: 1020659    22  55.1408 0.05541562 0.076298336
+ 2: 1026011    11  30.5370 0.02770781 0.042254053
+ 3: 1020161    10  20.8490 0.02518892 0.028848766
+ 4: 1020160     9  25.8086 0.02267003 0.035711365
+ 5: 1115464     8  15.9536 0.02015113 0.022075000
+ 6: 1161994     7  13.7480 0.01763224 0.019023110
+ 7: 1025437     7  13.5160 0.01763224 0.018702092
+ 8: 1022344     7   7.3990 0.01763224 0.010237998
+ 9: 1018997     6  14.1935 0.01511335 0.019639549
+10: 1180035     6  15.3600 0.01511335 0.021253635
+11: 1101553     5   8.6320 0.01259446 0.011944100
+12: 1266902     5   7.3700 0.01259446 0.010197871
+13: 1137793     5   9.3036 0.01259446 0.012873393
+14: 1022365     5   8.5930 0.01259446 0.011890136
+15: 1230253     5  15.3230 0.01259446 0.021202438
+16: 1130809     5   8.2775 0.01259446 0.011453578
+17: 1020156     4  10.6350 0.01007557 0.014715652
+18: 1022349     4  10.7240 0.01007557 0.014838801
+19: 1229919     4   7.4920 0.01007557 0.010366682
+20: 1025393     4   4.5478 0.01007557 0.006292792
+         id count sumPrice      share      shareP
+     <char> <int>    <num>      <num>       <num>
+Saving 7 x 7 in image
+[1] "top 20% of brokers cumulative share"
+[1] 0.4911839
+[1] "NOW FOR THIS SEGMENT AND AREA: Attached Vancouver West"
+      id                count           sumPrice           share          
+ Length:2145        Min.   : 1.000   Min.   :  0.299   Min.   :0.0001664  
+ Class :character   1st Qu.: 1.000   1st Qu.:  0.887   1st Qu.:0.0001664  
+ Mode  :character   Median : 2.000   Median :  1.679   Median :0.0003328  
+                    Mean   : 2.802   Mean   :  3.480   Mean   :0.0004662  
+                    3rd Qu.: 3.000   3rd Qu.:  3.460   3rd Qu.:0.0004992  
+                    Max.   :69.000   Max.   :108.276   Max.   :0.0114809  
+     shareP         
+ Min.   :4.005e-05  
+ 1st Qu.:1.188e-04  
+ Median :2.249e-04  
+ Mean   :4.662e-04  
+ 3rd Qu.:4.635e-04  
+ Max.   :1.450e-02  
+[1] "HERF FOR THIS SEGMENT/AREA:" "0.00141289752796929"        
+[3] "0.00209307444734492"        
+[1] "TOTAL TRANSACTIONS THIS SEGMENT/AREA:"
+[2] "6010"                                 
+Saving 7 x 7 in image
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+[1] "TOP 20 BROKERS BY COUNT"
+         id count  sumPrice       share      shareP
+     <char> <int>     <num>       <num>       <num>
+ 1: 1263072    69 108.27560 0.011480865 0.014503218
+ 2: 1141644    46  66.59459 0.007653910 0.008920162
+ 3: 1199977    42  59.40440 0.006988353 0.007957056
+ 4: 1023251    41  51.51980 0.006821963 0.006900935
+ 5: 1026173    41  51.70780 0.006821963 0.006926117
+ 6: 1263095    38  63.48170 0.006322795 0.008503199
+ 7: 1023611    32  45.76000 0.005324459 0.006129426
+ 8: 1018997    32  85.95750 0.005324459 0.011513770
+ 9: 1155287    30  25.03550 0.004991681 0.003353436
+10: 1236611    29  41.98500 0.004825291 0.005623775
+11: 1019824    28  45.70410 0.004658902 0.006121938
+12: 1020411    27  73.74700 0.004492512 0.009878207
+13: 1191624    27  25.20429 0.004492512 0.003376045
+14: 1144629    26  28.80970 0.004326123 0.003858980
+15: 1159979    25  29.63900 0.004159734 0.003970062
+16: 1194170    25  34.12280 0.004159734 0.004570655
+17: 1176102    24  28.62130 0.003993344 0.003833744
+18: 1184480    24  31.06850 0.003993344 0.004161540
+19: 1020161    22  58.43040 0.003660566 0.007826591
+20: 1159689    22  21.53707 0.003660566 0.002884831
+         id count  sumPrice       share      shareP
+     <char> <int>     <num>       <num>       <num>
+Saving 7 x 7 in image
+[1] "top 20% of brokers cumulative share"
+[1] 0.5617304
+> 
+> proc.time()
+   user  system elapsed 
+  4.516   0.263   2.748 
